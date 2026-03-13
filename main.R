@@ -123,4 +123,4 @@ rels <- ldRelation %>%
   left_join_relation(loadingRelation, ldRelation$rids, ".ld.rids") %>%
   as_join_operator(ctx$cnames, ctx$cnames)
 
-rels %>% ctx$save()
+save_relation(rels, ctx)
