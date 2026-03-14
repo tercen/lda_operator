@@ -1,19 +1,31 @@
+cat("START\n", file = stderr())
 library(tercen)
-library(tercenApi)
+cat("tercen loaded\n", file = stderr())
+tryCatch({
+  library(tercenApi)
+  cat("tercenApi loaded\n", file = stderr())
+}, error = function(e) {
+  cat(paste("tercenApi failed:", conditionMessage(e), "\n"), file = stderr())
+})
 library(dplyr, warn.conflicts = FALSE)
 library(tidyr)
 library(MASS)
+cat("All libraries loaded\n", file = stderr())
 
+cat("Creating context...\n", file = stderr())
 ctx <- tercenCtx()
+cat("Context created\n", file = stderr())
 
 # Parameters
 prior_method <- ctx$op.value("prior", type = as.character, default = "equal")
 cv_fraction  <- ctx$op.value("cv_fraction", type = as.double, default = 0.0)
 max_comp     <- ctx$op.value("maxComp", type = as.integer, default = 5L)
+cat("Parameters loaded\n", file = stderr())
 
 # Data matrix: variables (rows) x observations (cols)
 mat <- ctx$as.matrix()
 X   <- t(mat)  # observations x variables
+cat(paste("Matrix loaded:", nrow(mat), "x", ncol(mat), "\n"), file = stderr())
 
 n_obs  <- nrow(X)
 n_vars <- ncol(X)
@@ -28,6 +40,7 @@ if (ncol(group_df) > 1) {
   group_labels <- group_df[[1]]
 }
 group_labels <- as.factor(group_labels)
+cat(paste("Groups:", nlevels(group_labels), "levels\n"), file = stderr())
 
 n_groups <- nlevels(group_labels)
 n_ld     <- min(as.integer(max_comp), n_groups - 1, n_vars)
@@ -55,13 +68,16 @@ if (prior_method == "equal") {
 train_X     <- X[!holdout_idx, , drop = FALSE]
 train_group <- group_labels[!holdout_idx]
 lda_fit     <- MASS::lda(train_X, grouping = train_group, prior = prior_probs)
+cat("LDA fit complete\n", file = stderr())
 
 # Predict all observations
 pred_all <- predict(lda_fit, X)
+cat("Predictions complete\n", file = stderr())
 
 # Eigenvalues and variance explained
 eigenvalues   <- lda_fit$svd^2
 var_explained <- eigenvalues / sum(eigenvalues)
+cat(paste("Variance explained:", paste(round(var_explained, 3), collapse = ", "), "\n"), file = stderr())
 
 # --- Build relations (following PCA operator pattern) ---
 
@@ -71,6 +87,7 @@ ldRelation <- tibble(
 ) %>%
   ctx$addNamespace() %>%
   as_relation()
+cat("LD relation built\n", file = stderr())
 
 # Eigenvalue relation (one row per LD)
 eigenRelation <- tibble(
@@ -79,6 +96,7 @@ eigenRelation <- tibble(
 ) %>%
   ctx$addNamespace() %>%
   as_relation()
+cat("Eigen relation built\n", file = stderr())
 
 # Loadings relation (n_vars x n_ld, pivoted long)
 loadingRelation <- lda_fit$scaling[, 1:n_ld, drop = FALSE] %>%
@@ -94,6 +112,7 @@ loadingRelation <- lda_fit$scaling[, 1:n_ld, drop = FALSE] %>%
   ctx$addNamespace() %>%
   as_relation() %>%
   left_join_relation(ctx$rrelation, ".var.rids", ctx$rrelation$rids)
+cat("Loading relation built\n", file = stderr())
 
 # Scores relation with classification data (n_obs x n_ld, pivoted long)
 scores_wide <- pred_all$x[, 1:n_ld, drop = FALSE] %>%
@@ -115,6 +134,7 @@ scoresRelation <- scores_wide %>%
   ctx$addNamespace() %>%
   as_relation() %>%
   left_join_relation(ctx$crelation, ".i", ctx$crelation$rids)
+cat("Scores relation built\n", file = stderr())
 
 # Combine into single join operator
 rels <- ldRelation %>%
@@ -122,5 +142,8 @@ rels <- ldRelation %>%
   left_join_relation(eigenRelation, ldRelation$rids, eigenRelation$rids) %>%
   left_join_relation(loadingRelation, ldRelation$rids, ".ld.rids") %>%
   as_join_operator(ctx$cnames, ctx$cnames)
+cat("Join operator built\n", file = stderr())
 
+cat("Saving...\n", file = stderr())
 save_relation(rels, ctx)
+cat("DONE\n", file = stderr())
