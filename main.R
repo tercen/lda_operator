@@ -1,5 +1,6 @@
 library(tercen)
 library(dplyr, warn.conflicts = FALSE)
+select <- dplyr::select
 library(tidyr)
 library(MASS)
 
