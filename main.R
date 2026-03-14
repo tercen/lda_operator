@@ -12,7 +12,7 @@ cv_fraction  <- ctx$op.value("cv_fraction", type = as.double, default = 0.0)
 max_comp     <- ctx$op.value("maxComp", type = as.integer, default = 5L)
 
 # Get all data using select() instead of as.matrix() + cselect()
-df <- ctx$select(unlist(list(".ci", ".ri", ".y", ctx$colors)))
+df <- ctx$select(unlist(list(".ci", ".ri", ".y", unlist(ctx$colors))))
 
 # Build matrix from .ci (observation), .ri (variable), .y (value)
 mat_df <- df %>% select(.ci, .ri, .y) %>%
@@ -26,14 +26,14 @@ cat(paste("DEBUG: Matrix", n_obs, "x", n_vars, "\n"), file = stderr())
 
 # Group labels from color factors (one row per observation)
 group_df <- df %>%
-  select(.ci, all_of(ctx$colors)) %>%
+  select(.ci, all_of(unlist(ctx$colors))) %>%
   distinct() %>%
   arrange(.ci)
 
-if (length(ctx$colors) > 1) {
-  group_labels <- apply(group_df[, ctx$colors, drop = FALSE], 1, paste, collapse = ":")
+if (length(unlist(ctx$colors)) > 1) {
+  group_labels <- apply(group_df[, unlist(ctx$colors), drop = FALSE], 1, paste, collapse = ":")
 } else {
-  group_labels <- group_df[[ctx$colors[1]]]
+  group_labels <- group_df[[unlist(ctx$colors)[1]]]
 }
 group_labels <- as.factor(group_labels)
 
