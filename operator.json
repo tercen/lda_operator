@@ -1,0 +1,162 @@
+{
+  "name": "Linear Discriminant Analysis",
+  "description": "Performs Fisher's Linear Discriminant Analysis (LDA) / Canonical Discriminant Analysis to find linear combinations of variables that best separate predefined groups. Returns discriminant scores, loadings, classification predictions, and variance explained per canonical variate.",
+  "tags": [
+    "supervised classification",
+    "multivariate statistics",
+    "dimensionality reduction",
+    "discriminant analysis"
+  ],
+  "authors": ["tercen"],
+  "urls": ["https://github.com/tercen/lda_operator"],
+  "container": "ghcr.io/tercen/lda_operator:dev",
+  "properties": [
+    {
+      "kind": "EnumeratedProperty",
+      "name": "prior",
+      "defaultValue": "equal",
+      "values": ["equal", "proportional"],
+      "description": "Prior probabilities for group classification. 'equal' assigns 1/g to each group, 'proportional' uses observed group frequencies."
+    },
+    {
+      "kind": "DoubleProperty",
+      "name": "cv_fraction",
+      "defaultValue": 0.0,
+      "description": "Fraction of observations per group to hold out for cross-validation (0 = no hold-out, 0.1 = 10%). Hold-out samples receive predicted_group but are not used to fit the model."
+    },
+    {
+      "kind": "DoubleProperty",
+      "name": "maxComp",
+      "defaultValue": 5,
+      "description": "Maximum number of canonical variates (discriminant functions) to return. Actual number is min(maxComp, g-1, p) where g = groups, p = variables."
+    }
+  ],
+  "operatorSpec": {
+    "kind": "OperatorSpec",
+    "ontologyUri": "https://tercen.com/_ontology/tercen",
+    "ontologyVersion": "1.0.0",
+    "inputSpecs": [
+      {
+        "kind": "CrosstabSpec",
+        "metaFactors": [
+          {
+            "kind": "MetaFactor",
+            "name": "Variable",
+            "type": "",
+            "description": "Variable identifiers (e.g., morphological dimensions, gene markers, channels).",
+            "ontologyMapping": "variable",
+            "crosstabMapping": "row",
+            "cardinality": "1..n",
+            "factors": []
+          },
+          {
+            "kind": "MetaFactor",
+            "name": "Observation",
+            "type": "",
+            "description": "Observation identifiers (e.g., specimens, samples, cells).",
+            "ontologyMapping": "observation",
+            "crosstabMapping": "column",
+            "cardinality": "1..n",
+            "factors": []
+          }
+        ],
+        "axis": [
+          {
+            "kind": "AxisSpec",
+            "metaFactors": [
+              {
+                "kind": "MetaFactor",
+                "name": "Measurement",
+                "type": "double",
+                "description": "Measurement values.",
+                "ontologyMapping": "measurement",
+                "crosstabMapping": "y",
+                "cardinality": "1",
+                "factors": []
+              },
+              {
+                "kind": "MetaFactor",
+                "name": "Group",
+                "type": "",
+                "description": "Group factor defining classes for discrimination.",
+                "ontologyMapping": "group",
+                "crosstabMapping": "color",
+                "cardinality": "1..n",
+                "factors": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputSpecsV2": [
+      {
+        "kind": "OperatorJoinSpec",
+        "joinOperators": [
+          {
+            "kind": "JoinOperator",
+            "joinType": "left",
+            "leftPair": {
+              "kind": "ColumnPair",
+              "lColumns": ["Observation"],
+              "rColumns": ["Observation"]
+            },
+            "rightRelation": {
+              "kind": "TableRelation",
+              "attributes": [
+                {
+                  "kind": "Attribute",
+                  "name": "LD",
+                  "type": "string",
+                  "description": "Canonical variate label (LD1, LD2, ...)"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "ld.score",
+                  "type": "double",
+                  "description": "Discriminant score for this observation on this canonical variate"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "ld.eigen.value",
+                  "type": "double",
+                  "description": "Eigenvalue (canonical root) for this variate"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "var_between_explained",
+                  "type": "double",
+                  "description": "Proportion of between-group variance explained by this variate"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "ld.loading",
+                  "type": "double",
+                  "description": "Loading (coefficient) per variable per canonical variate"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "predicted_group",
+                  "type": "string",
+                  "description": "Predicted group from posterior probabilities"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "posterior_max",
+                  "type": "double",
+                  "description": "Maximum posterior probability (classification confidence)"
+                },
+                {
+                  "kind": "Attribute",
+                  "name": "is_holdout",
+                  "type": "int32",
+                  "description": "1 if observation was held out for cross-validation, 0 otherwise"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
