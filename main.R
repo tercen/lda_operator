@@ -17,17 +17,17 @@ df <- ctx$select(unlist(list(".ci", ".ri", ".y", ctx$colors)))
 
 # ---- Build matrix from .ci (observation) x .ri (variable) ----
 mat_df <- df %>%
-  select(.ci, .ri, .y) %>%
+  dplyr::select(.ci, .ri, .y) %>%
   pivot_wider(names_from = .ri, values_from = .y, values_fn = list(.y = mean))
 
-mat_obs <- mat_df %>% select(-.ci) %>% as.matrix()  # observations x variables
+mat_obs <- mat_df %>% dplyr::select(-.ci) %>% as.matrix()  # observations x variables
 
 n_obs  <- nrow(mat_obs)
 n_vars <- ncol(mat_obs)
 
 # ---- Group labels (one per observation, from color factor) ----
 group_df <- df %>%
-  select(.ci, all_of(ctx$colors)) %>%
+  dplyr::select(.ci, all_of(ctx$colors)) %>%
   distinct() %>%
   arrange(.ci)
 
