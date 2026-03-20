@@ -13,7 +13,8 @@ max_comp     <- as.integer(ctx$op.value("maxComp", type = as.double, default = 5
 
 # ---- Get all data via ctx$select() ----
 # Colors are axis-level, not column-level, so we use ctx$select() (NOT ctx$cselect())
-df <- ctx$select(unlist(list(".ci", ".ri", ".y", ctx$colors)))
+color_names <- unlist(ctx$colors)
+df <- ctx$select(c(".ci", ".ri", ".y", color_names))
 
 # ---- Build matrix from .ci (observation) x .ri (variable) ----
 mat_df <- df %>%
@@ -27,15 +28,15 @@ n_vars <- ncol(mat_obs)
 
 # ---- Group labels (one per observation, from color factor) ----
 group_df <- df %>%
-  dplyr::select(.ci, all_of(ctx$colors)) %>%
+  dplyr::select(.ci, all_of(color_names)) %>%
   distinct() %>%
   arrange(.ci)
 
 # Combine color factors into single group label if multiple
-if (length(ctx$colors) > 1) {
-  group_labels <- as.factor(do.call(paste, c(group_df[ctx$colors], sep = ".")))
+if (length(color_names) > 1) {
+  group_labels <- as.factor(do.call(paste, c(group_df[color_names], sep = ".")))
 } else {
-  group_labels <- as.factor(group_df[[ctx$colors[1]]])
+  group_labels <- as.factor(group_df[[color_names[1]]])
 }
 
 n_groups <- nlevels(group_labels)
